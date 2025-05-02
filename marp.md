@@ -10,7 +10,7 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 
 ## **Adoção Inicial e Versionamento**
 
-*   **Desafio Inicial:** Versões 0.x (ex: 0.3x) apresentaram instabilidade, especialmente em upgrades (migração para v1). Dificuldades com CRDs e rollbacks.
+*   **Desafio Inicial:** Versões 0.x (ex: 0.37.5) apresentaram instabilidade no rollback (migração para v1). Dificuldades com CRDs e rollbacks.
 *   **⚠️ Aprendizado Chave:** **Esperar por Versões Estáveis.** A adoção da v1.x (ex: 1.3+) é mais confiável e madura.
 *   **Recomendação:** Inicie com uma versão v1.x estável (ex: 1.3 ou superior).
 
@@ -20,10 +20,10 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 
 *   **✅ Melhor Prática:** Dividir workloads em **NodePools distintos** baseados em características.
 *   **Exemplos de Segregação:**
-    *   `Infraestrutura / Plano de Controle` (ArgoCD, monitoramento leve)
-    *   `Observabilidade` (Máquinas maiores/específicas)
-    *   `Ingress` (Istio, Nginx Ingress)
-    *   `Plano de Dados / Aplicação` (Workloads gerais)
+    *   `Infraestrutura / Controlplane` (ArgoCD, monitoramento leve)
+    *   `Observabilidade / Controlplane-Observability` (Máquinas maiores/específicas)
+    *   `Ingress / Controlplane-Traffic-Control` (Istio, Nginx Ingress)
+    *   `Aplicação / Dataplane` (Workloads gerais)
 *   **Benefícios:** Tipos de instância direcionados, atualizações independentes, melhor isolamento.
 
 ---
@@ -33,9 +33,10 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 *   **Abordagem Antiga:** Definir manualmente famílias de instância (C5, M5...).
 *   **Problema:** Restringir escolhas causava problemas, especialmente com Spot.
 *   **✅ Melhor Prática:** **Deixar o Karpenter escolher!**
-    *   Defina *requisitos* (CPU arch) e *não permitidos* (burstable, gerações antigas).
-    *   Conceda flexibilidade para encontrar instâncias ótimas (ex: C7g).
+    *   Defina *requisitos* (zone, arch) e *não permitidos* (burstable, gerações antigas).
+    *   Conceda flexibilidade para encontrar instâncias ótimas (ex: c7i-flex, m7i-flex).
 *   **Estratégia Spot:** Oferecer **Spot + On-Demand** em não-produção. Karpenter prioriza Spot, com fallback para On-Demand.
+*   **Spot Instace Adivisor**: <https://aws.amazon.com/pt/ec2/spot/instance-advisor/>
 
 ---
 
@@ -47,7 +48,6 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
     1.  **Budgets do Karpenter:** Controlar a *taxa* de substituição.
         *   `0` durante horário comercial (sem trocas).
         *   `1` na janela de manutenção (troca sequencial, um por vez).
-    2.  **Agendamento:** Automação (CronJobs) para gerenciar budgets/NodePools.
     3.  **Atualizações Escalonadas:** Janelas de manutenção *diferentes* por NodePool.
 
 ---
