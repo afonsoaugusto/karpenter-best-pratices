@@ -1,5 +1,9 @@
 ---
 marp: true
+theme: default
+class:
+  - lead
+  - invert
 ---
 
 # **Karpenter no EKS: Melhores Práticas e Aprendizados Práticos**
@@ -10,7 +14,7 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 
 ## **Adoção Inicial e Versionamento**
 
-*   **Desafio Inicial:** Versões 0.x (ex: 0.37.5) apresentaram instabilidade no rollback (migração para v1). Dificuldades com CRDs e rollbacks.
+*   **Desafio Inicial:** Versões 0.x (ex: 0.37.5) apresentaram instabilidade no rollback (0.36.x, 0.35.x). Dificuldades com CRDs e rollbacks.
 *   **⚠️ Aprendizado Chave:** **Esperar por Versões Estáveis.** A adoção da v1.x (ex: 1.3+) é mais confiável e madura.
 *   **Recomendação:** Inicie com uma versão v1.x estável (ex: 1.3 ou superior).
 
@@ -52,15 +56,39 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 
 ---
 
+## **budget do karpenter**
+
+```hcl
+"pro" = [
+  {
+    "nodes" = "1"
+  },
+  {
+    "nodes"    = "0"
+    "schedule" = "0 8 * * *" # 05 da manhã Brasil
+    "duration" = "21h"       # 05 da manhã até 02 da manhã
+  },
+  {
+    "nodes"    = "0"
+    "schedule" = "0 3 * * 5,6,0" # Na sexta, sábado e domingo não haverá consolidação
+    "duration" = "24h"
+  },
+  ...
+]
+```
+
+---
+
 ## **O "Ingrediente Secreto": Configuração da Carga de Trabalho**
 
 *   **‼️ Crítico #1: Requests & Limits:**
-    *   Pods **DEVEM** ter `requests` definidos para bin-packing eficiente.
-    *   `limits` são cruciais para estabilidade do nó (evitar OOM).
+    *   Pods **DEVEM** ter `requests` & `limits` definidos 
 *   **‼️ Crítico #2: Pod Disruption Budgets (PDBs):**
     *   **ESSENCIAIS** para disponibilidade durante operações do Karpenter (drenagem/troca de nós).
     *   Informam quantos pods *devem* permanecer disponíveis.
     *   **Cuidado:** PDBs muito restritivos (`minAvailable: 100%`) podem **bloquear** a troca de nós. Equilibre disponibilidade e flexibilidade.
+*   **‼️ Crítico #3: TopologySpread:**    
+    * Ele vai indicar a distriuição dos pods. Quantos pods irá ficar em cada maquina/zona
 
 ---
 
@@ -77,11 +105,23 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 
 ## **Monitorando o Karpenter**
 
-*   **Mecanismo:** Endpoint de métricas (`/metrics`).
+*   **Mecanismo:** Endpoint de métricas (`:8080/metrics`).
 *   **Ferramentas:**
     *   **Prometheus & Grafana:** Bom dashboard da comunidade disponível.
     *   **Datadog:** Boa integração e dashboards próprios.
-*   **Recomendação:** Monitore decisões, contagem de nós, utilização de recursos e erros.
+*   **Recomendação:** Monitore reconciliações, contagem de nós, utilização de recursos e erros.
+
+---
+
+## **Monitorando o Karpenter**
+
+![center w:800px](./karpenter-dash.png)
+
+---
+
+## **Monitorando o Karpenter**
+
+![center w:800px](./karpenter-dashboard-datadog.avif)
 
 ---
 
@@ -95,6 +135,16 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
     *   **Consolidação:** Karpenter tenta automaticamente consolidar pods (respeitando PDBs/Budgets).
 
 ---
+
+## **FinOps DEV & HOM**
+
+*   **Motivação:** Zerar as instancias em DEV e HOM
+*   **Estratégias:**
+    *   **Zerar os deployments:** Modificar o workload para ficar zerar as replicas.
+    *   **Limists dos nodepools:** Modificar os limits do nodepool para 0.
+    *   **Remover os nodepools:**  Com a remoção do nodepools, as ec2 provisionadas são removidas.
+---
+
 
 ## **Considerações Avançadas e Futuras**
 
@@ -110,7 +160,7 @@ Compartilhando experiências práticas, desafios e estratégias bem-sucedidas pa
 *   ✅ **Poderoso:** Melhor que Cluster Autoscaler para muitos cenários.
 *   ⏱️ **Estabilidade:** Use versões v1.x.
 *   🧱 **Segregue NodePools:** Adapte a infraestrutura.
-*   ⚙️ **Configure Workloads:** Requests/Limits e PDBs são cruciais.
+*   ⚙️ **Configure Workloads:** Requests/Limits, PDBs e TopologySpread são cruciais.
 *   🗓️ **Use Budgets/Agendamento:** Controle interrupções e atualizações.
 *   💡 **Dê Flexibilidade:** Deixe Karpenter escolher instâncias.
 *   📊 **Monitore Ativamente:** Entenda o comportamento.
