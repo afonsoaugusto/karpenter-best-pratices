@@ -1,11 +1,3 @@
----
-marp: true
-theme: default
-class:
-  - lead
-  - invert
----
-
 # **Karpenter no EKS: Melhores Práticas e Aprendizados Práticos**
 
 Compartilhando experiências práticas, desafios e estratégias bem-sucedidas para usar o Karpenter no gerenciamento de nós worker do EKS.
